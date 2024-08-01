@@ -2,11 +2,13 @@
 #include <SFML/Window.hpp>
 #include <iostream>
 #include <vector>
+#include <cmath>
 #include "Vector2D.h"
 #include "Body.h"
 
 double TIME_STEP = 43200; // Half a day in seconds
-const double SPEED_FACTOR = 10;
+const double MIN_SPEED = 86400 * 1; // 1 day in seconds
+const double MAX_SPEED = 86400 * 100; // 10 days in seconds
 
 void simulate(std::vector<Body>& bodies, int steps) {
     for (int step = 0; step < steps; ++step) {
@@ -48,8 +50,9 @@ void drawBodies(sf::RenderWindow& window, const std::vector<Body>& bodies) {
     }
 }
 
-bool isButtonClicked(const sf::RectangleShape& button, sf::Vector2f mousePos) {
-    return button.getGlobalBounds().contains(mousePos);
+double calculateSpeedFromSlider(double sliderPosition, double sliderLength) {
+    double normalizedPosition = sliderPosition / sliderLength;
+    return MIN_SPEED * std::pow(MAX_SPEED / MIN_SPEED, normalizedPosition);
 }
 
 int main() {
@@ -70,20 +73,16 @@ int main() {
         return -1;
     }
 
-    // Create buttons
-    sf::RectangleShape speedUpButton(sf::Vector2f(120, 50));
-    speedUpButton.setPosition(650, 700);
-    speedUpButton.setFillColor(sf::Color::Green);
+    // Create slider
+    sf::RectangleShape sliderTrack(sf::Vector2f(200, 10));
+    sliderTrack.setPosition(550, 730);
+    sliderTrack.setFillColor(sf::Color::White);
 
-    sf::Text speedUpText("Speed Up", font, 20);
-    speedUpText.setPosition(660, 715);
+    sf::RectangleShape sliderKnob(sf::Vector2f(20, 30));
+    sliderKnob.setPosition(650, 715);
+    sliderKnob.setFillColor(sf::Color::Green);
 
-    sf::RectangleShape slowDownButton(sf::Vector2f(120, 50));
-    slowDownButton.setPosition(500, 700);
-    slowDownButton.setFillColor(sf::Color::Red);
-
-    sf::Text slowDownText("Slow Down", font, 20);
-    slowDownText.setPosition(510, 715);
+    bool isDragging = false;
 
     while (window.isOpen()) {
         // Handle events
@@ -94,11 +93,18 @@ int main() {
             }
             if (event.type == sf::Event::MouseButtonPressed) {
                 sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-                if (isButtonClicked(speedUpButton, mousePos)) {
-                    TIME_STEP *= SPEED_FACTOR;
-                } else if (isButtonClicked(slowDownButton, mousePos)) {
-                    TIME_STEP /= SPEED_FACTOR;
+                if (sliderKnob.getGlobalBounds().contains(mousePos)) {
+                    isDragging = true;
                 }
+            }
+            if (event.type == sf::Event::MouseButtonReleased) {
+                isDragging = false;
+            }
+            if (event.type == sf::Event::MouseMoved && isDragging) {
+                sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                float newPosX = std::clamp(mousePos.x, sliderTrack.getPosition().x, sliderTrack.getPosition().x + sliderTrack.getSize().x - sliderKnob.getSize().x);
+                sliderKnob.setPosition(newPosX, sliderKnob.getPosition().y);
+                TIME_STEP = calculateSpeedFromSlider(newPosX - sliderTrack.getPosition().x, sliderTrack.getSize().x - sliderKnob.getSize().x);
             }
         }
 
@@ -109,11 +115,9 @@ int main() {
         window.clear();
         drawBodies(window, bodies);
 
-        // Draw buttons
-        window.draw(speedUpButton);
-        window.draw(speedUpText);
-        window.draw(slowDownButton);
-        window.draw(slowDownText);
+        // Draw slider
+        window.draw(sliderTrack);
+        window.draw(sliderKnob);
 
         window.display();
     }
