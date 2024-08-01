@@ -31,7 +31,6 @@ void simulate(std::vector<Body>& bodies, int steps) {
 }
 
 void drawBodies(sf::RenderWindow& window, const std::vector<Body>& bodies) {
-    window.clear();
     for (const auto& body : bodies) {
         sf::CircleShape shape(body.mass > 1e26 ? 10 : 5); // Sun is bigger
         shape.setPosition(
@@ -47,7 +46,6 @@ void drawBodies(sf::RenderWindow& window, const std::vector<Body>& bodies) {
 
         window.draw(shape);
     }
-    window.display();
 }
 
 bool isButtonClicked(const sf::RectangleShape& button, sf::Vector2f mousePos) {
@@ -57,6 +55,7 @@ bool isButtonClicked(const sf::RectangleShape& button, sf::Vector2f mousePos) {
 int main() {
     // Create the window
     sf::RenderWindow window(sf::VideoMode(800, 800), "Solar System Simulator");
+    window.setFramerateLimit(60); // Set the frame rate limit
 
     // Initialize bodies
     Body sun(Vector2D(0, 0), Vector2D(0, 0), 1.989e30);
@@ -103,8 +102,11 @@ int main() {
             }
         }
 
-        // Simulate and draw
+        // Simulate
         simulate(bodies, 1);
+
+        // Draw everything
+        window.clear();
         drawBodies(window, bodies);
 
         // Draw buttons
