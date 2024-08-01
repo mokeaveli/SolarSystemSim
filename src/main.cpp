@@ -5,7 +5,8 @@
 #include "Vector2D.h"
 #include "Body.h"
 
-const double TIME_STEP = 43200; // Half a day in seconds
+double TIME_STEP = 43200; // Half a day in seconds
+const double SPEED_FACTOR = 10;
 
 void simulate(std::vector<Body>& bodies, int steps) {
     for (int step = 0; step < steps; ++step) {
@@ -49,6 +50,10 @@ void drawBodies(sf::RenderWindow& window, const std::vector<Body>& bodies) {
     window.display();
 }
 
+bool isButtonClicked(const sf::RectangleShape& button, sf::Vector2f mousePos) {
+    return button.getGlobalBounds().contains(mousePos);
+}
+
 int main() {
     // Create the window
     sf::RenderWindow window(sf::VideoMode(800, 800), "Solar System Simulator");
@@ -59,6 +64,28 @@ int main() {
 
     std::vector<Body> bodies = { sun, earth };
 
+    // Load font
+    sf::Font font;
+    if (!font.loadFromFile("../fonts/Roboto-Bold.ttf")) {
+        std::cerr << "Failed to load font\n";
+        return -1;
+    }
+
+    // Create buttons
+    sf::RectangleShape speedUpButton(sf::Vector2f(120, 50));
+    speedUpButton.setPosition(650, 700);
+    speedUpButton.setFillColor(sf::Color::Green);
+
+    sf::Text speedUpText("Speed Up", font, 20);
+    speedUpText.setPosition(660, 715);
+
+    sf::RectangleShape slowDownButton(sf::Vector2f(120, 50));
+    slowDownButton.setPosition(500, 700);
+    slowDownButton.setFillColor(sf::Color::Red);
+
+    sf::Text slowDownText("Slow Down", font, 20);
+    slowDownText.setPosition(510, 715);
+
     while (window.isOpen()) {
         // Handle events
         sf::Event event;
@@ -66,11 +93,27 @@ int main() {
             if (event.type == sf::Event::Closed) {
                 window.close();
             }
+            if (event.type == sf::Event::MouseButtonPressed) {
+                sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                if (isButtonClicked(speedUpButton, mousePos)) {
+                    TIME_STEP *= SPEED_FACTOR;
+                } else if (isButtonClicked(slowDownButton, mousePos)) {
+                    TIME_STEP /= SPEED_FACTOR;
+                }
+            }
         }
 
         // Simulate and draw
         simulate(bodies, 1);
         drawBodies(window, bodies);
+
+        // Draw buttons
+        window.draw(speedUpButton);
+        window.draw(speedUpText);
+        window.draw(slowDownButton);
+        window.draw(slowDownText);
+
+        window.display();
     }
 
     return 0;
